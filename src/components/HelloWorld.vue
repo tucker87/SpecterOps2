@@ -145,6 +145,7 @@ body {
    --open-background: #FFF;
    --wall-background: #444;
    --title-background: #444;
+   --title-color: #FFF;
    --active-tint: blue 40%;
    --active-color: #000;
    --seen-tint: blue 20%;
@@ -199,7 +200,7 @@ body {
       &.t {
          aspect-ratio: unset;
          grid-column: span 5;
-         color: #FFF;
+         color: var(--title-color);
          background: var(--title-background);
          font-size: clamp(0rem, 5vw, 1rem);
 
