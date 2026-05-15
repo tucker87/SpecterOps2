@@ -1,0 +1,38 @@
+
+export const baseBoard = `
+oowowowowowooesooottttt
+wooooooooowowsswwowowwo
+eowwowowwooowsswooooooe
+wowooooowowoossoowowoww
+oooowowooooowsswooooooo
+owwowowwowowwssoowwowwo
+sssssssssssssxxwowooooo
+sssssssssssssxxoooowwow
+wowwowowwowowsswowooooo
+ooowooowooooossoooowowo
+owoooEoooccowsswwowwowo
+owowoooFoccooxxssssssss
+ooooowoooooowxxssssssss
+woDowwwowwowwsswwowoXow
+sssssssssxxssxxooowoooo
+sssssssssxxssxxwwowwoWo
+woBowowowsswowooooooooo
+oooooooowsswoooSoToUoVo
+oAoCowwoossoowooooooooo
+oooooowowsswowwowowowow
+wowowooooxxssssssssssss
+wowowwowwxxssssssssssss
+sssssssssyywowowowwowwo
+sssssssssyywoooooowoooo
+owwowwowwssoowwoNoooQow
+oowoooooosswoowooowoooo
+woooIoJowsswwooowowwowo
+woHooooowssooowoooooowo
+oooowoKoosswowwoOowwooo
+oGowwoooLsswoooooooooRo
+oooooowoossooMowoPowooo
+owwowowowsswooowooowowo
+`
+export const bcBoard = ``
+
+export default { baseBoard, bcBoard }
