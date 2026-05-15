@@ -25,6 +25,7 @@ let board = ref(boardData
       const x = 1 + i % boardWidth
       const y = 1 + Math.floor(i / boardWidth)
       const isGoal = type >= 'A' && type <= 'Z'
+      const style = type !== 't' && type !== 'c' ? `grid-area: ${y} / ${x};` : ''
 
       return {
          type,
@@ -38,6 +39,7 @@ let board = ref(boardData
          isCrossroad: type === 'x' || type === 'y',
          isGoal,
          neighborStreets: [],
+         style,
       }
    }))
 
@@ -82,7 +84,11 @@ const findStreetNeighbors = (board) => {
 
 findStreetNeighbors(board.value)
 
-// const players = ref([{ name: 'one', x: 2, y: 2 }, { name: 'two', x: 3, y: 3 }])
+const players = ref([
+   { name: 'one', x: 10, y: 24 },
+   { name: 'two', x: 14, y: 16 },
+])
+const car = ref({ x: 10, y: 23 }) // 2: J17, 3: J23
 
 const moves = ref([])
 const toCoord = pos => String.fromCharCode(pos.x + 64)
@@ -102,6 +108,27 @@ const selectCell = cell => {
 }
 
 const clearSeen = () => board.value.forEach(cell => cell.seen = false)
+
+const updatePlayerSeen = () => {
+   for (const player of players.value) {
+      const { x, y } = player
+
+      const left = range(1, x - 1).map(cx => cellIndex(cx, y)).reverse()
+      const right = range(x + 1, boardWidth).map(cx => cellIndex(cx, y))
+      const up = range(1, y - 1).map(cy => cellIndex(x, cy)).reverse()
+      const down = range(y + 1, boardHeight).map(cy => cellIndex(x, cy))
+
+      const activeCell = board.value[cellIndex(x, y)]
+
+      const onRoad = activeCell.isStreet || activeCell.isCrossroad
+
+      setSeen(left, onRoad)
+      setSeen(right, onRoad);
+      setSeen(up, onRoad);
+      setSeen(down, onRoad);
+   }
+}
+
 
 const updateSeen = activeCell => {
    if (!activeCell)
@@ -138,6 +165,21 @@ const setSeen = (cellIndexes, onRoad) => {
 const addMove = cell => moves.value.push({ pos: `${toCoord(cell)}${cell.y}` })
 const deleteMove = cell => moves.value = moves.value.filter(x => x !== cell)
 
+const dragStart = (e, index) => {
+   e.dataTransfer.setData('playerIndex', index);
+}
+
+const dropPlayer = (e, x, y) => {
+   e.preventDefault();
+   const playerIndex = e.dataTransfer.getData('playerIndex');
+
+   players.value[playerIndex].x = x
+   players.value[playerIndex].y = y
+   clearSeen()
+   updatePlayerSeen()
+}
+
+updatePlayerSeen()
 </script>
 
 <template>
@@ -149,9 +191,10 @@ const deleteMove = cell => moves.value = moves.value.filter(x => x !== cell)
    </section>
    <div style="display: grid; grid-template-columns: 1fr 100px;">
       <section id="board">
-         <template v-for="cell in board" :style="`grid-row: ${cell.x}; grid-column: ${cell.y};`">
+         <template v-for="cell in board">
             <div class="cell" :class="[cell.type, cell.facing, cell.active ? 'active' : '', cell.seen ? 'seen' : '']"
-               @click="selectCell(cell)" @dblclick="addMove(cell)">
+               :style="cell.style" @click="selectCell(cell)" @dblclick="addMove(cell)"
+               @drop="dropPlayer($event, cell.x, cell.y)" @dragover.prevent @dragenter.prevent>
                <template v-if="cell.isOpen || cell.isStreet || cell.isCrossroad">
                   {{ toCoord(cell) }}{{ cell.y }}
                </template>
@@ -173,7 +216,11 @@ const deleteMove = cell => moves.value = moves.value.filter(x => x !== cell)
                </template>
             </div>
          </template>
-         <div class="player" v-for="player in players" :style="`grid-row: ${player.x}; grid-column: ${player.y};`">
+         <div class="car" :style="`grid-area: ${car.y} / ${car.x} / span 2 / span 2;`">
+            CAR
+         </div>
+         <div class="player" v-for="(player, i) in players" :style="`grid-area: ${player.y} / ${player.x};`"
+            draggable="true" @dragstart="dragStart($event, i)">
             {{ player.name }}
          </div>
       </section>
@@ -347,8 +394,18 @@ body {
    }
 
    .player {
-      width: 100%;
-      aspect-ratio: unset;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #AA0000;
+      border-radius: 100%;
+   }
+
+   .car {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #AA0000;
    }
 }
 </style>
