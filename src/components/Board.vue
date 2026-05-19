@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { baseBoard, bcBoard } from '~/boards.js';
 import { toCoord } from '~/utils.js'
 import Cell from './Cell.vue'
 import Player from './Player.vue'
 import Toggle from './Toggle.vue'
+import { useLocalStorage } from '@vueuse/core';
 
-const useExpansionBoard = ref(false)
+const useExpansionBoard = useLocalStorage('useExpansionBoard', false)
 
 const boardData = computed(() => useExpansionBoard.value ? bcBoard : baseBoard)
 const boardWidth = 23
@@ -179,19 +180,21 @@ const dragCar = e => {
    e.dataTransfer.setData('playerId', 'car');
 }
 
-const car = ref({})
-const players = ref([])
-const moves = ref([])
+const key = computed(() => useExpansionBoard.value ? 'bc-' : 'orig-')
+let car
+let players
+let moves
 
 const initBoard = () => {
    const startLocation = boardData.value.carStart(4)
-   car.value = { x: startLocation.x, y: startLocation.y }
-   players.value = [
+   car = useLocalStorage(key.value + 'car', { x: startLocation.x, y: startLocation.y })
+   players = useLocalStorage(key.value + 'players', [
       initPlayer(1),
       initPlayer(2),
       initPlayer(3),
       initPlayer(4),
-   ]
+   ])
+   moves = useLocalStorage(key.value + 'moves', [])
 
    clearSeen()
    updatePlayerSeen()
