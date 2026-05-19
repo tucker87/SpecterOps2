@@ -1,11 +1,14 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { baseBoard, bcBoard } from '~/boards.js';
+import { toCoord } from '~/utils.js'
 import Cell from './Cell.vue'
 import Player from './Player.vue'
+import Toggle from './Toggle.vue'
 
-// const boardData = baseBoard
-const boardData = bcBoard
+const useExpansionBoard = ref(true)
+
+const boardData = computed(() => useExpansionBoard.value ? bcBoard : baseBoard)
 const boardWidth = 23
 const boardHeight = 32
 
@@ -17,32 +20,6 @@ const cellIndex = (x, y) => {
 
 }
 const range = (start, end) => Array.from({ length: end - start + 1 }, (_, i) => start + i);
-
-let board = ref(boardData
-   .replaceAll('\n', '')
-   .trim()
-   .split('')
-   .map((type, i) => {
-      const x = 1 + i % boardWidth
-      const y = 1 + Math.floor(i / boardWidth)
-      const isGoal = type >= 'A' && type <= 'Z'
-      const style = type !== 't' && type !== 'c' ? `grid-area: ${y} / ${x};` : ''
-
-      return {
-         type,
-         x,
-         y,
-         code: type.charCodeAt(),
-         blocksVision: type === 'w' || type === 'c' || isGoal,
-         isOpen: type === 'o',
-         isStreet: type === 's',
-         isCrossroad: type === 'x' || type === 'y',
-         isExit: type === 'e',
-         isGoal,
-         neighborStreets: [],
-         style,
-      }
-   }))
 
 const findStreetNeighbors = (board) => {
    for (var c of board) {
@@ -83,9 +60,37 @@ const findStreetNeighbors = (board) => {
    }
 }
 
-findStreetNeighbors(board.value)
+const board = computed(() => {
+   const b = boardData.value.map
+      .replaceAll('\n', '')
+      .trim()
+      .split('')
+      .map((type, i) => {
+         const x = 1 + i % boardWidth
+         const y = 1 + Math.floor(i / boardWidth)
+         const isGoal = type >= 'A' && type <= 'Z'
+         const style = type !== 't' && type !== 'c' ? `grid-area: ${y} / ${x};` : ''
 
-const car = ref({ x: 11, y: 23 }) // 2: K17, 3: K23
+         return {
+            type,
+            x,
+            y,
+            code: type.charCodeAt(),
+            blocksVision: type === 'w' || type === 'c' || isGoal,
+            isOpen: type === 'o',
+            isStreet: type === 's',
+            isCrossroad: type === 'x' || type === 'y',
+            isExit: type === 'e',
+            isGoal,
+            neighborStreets: [],
+            style,
+         }
+      })
+
+   findStreetNeighbors(b)
+   return b
+})
+
 const initPlayer = index => ({
    id: index,
    name: '' + index,
@@ -94,15 +99,21 @@ const initPlayer = index => ({
    inCar: true,
 })
 
-const players = ref([
-   initPlayer(1),
-   initPlayer(2),
-   initPlayer(3),
-   initPlayer(4),
-])
+const car = ref({})
+const players = ref([])
 
 const moves = ref([])
-const toCoord = pos => String.fromCharCode(pos.x + 64)
+const initBoard = () => {
+   const startLocation = boardData.value.carStart(4)
+   car.value = { x: startLocation.x, y: startLocation.y }
+   players.value = [
+      initPlayer(1),
+      initPlayer(2),
+      initPlayer(3),
+      initPlayer(4),
+   ]
+}
+
 
 const clearSeen = () => board.value.forEach(cell => cell.seen = false)
 
@@ -191,13 +202,20 @@ updatePlayerSeen()
    <section>
       <div>
          <h1>Specter Ops</h1>
-         <p>Original / Broken Covenant</p>
+         <toggle v-model="useExpansionBoard" @change="initBoard">
+            <template #before>
+               Original
+            </template>
+            <template #after>
+               Broken Covenant
+            </template>
+         </toggle>
       </div>
    </section>
    <div style="display: grid; grid-template-columns: 1fr 100px;">
       <section id="board">
-         <cell v-for="(cell, i) in board" v-model="board[i]" @dropPlayer="dropPlayer($event, cell.x, cell.y)"
-            @dblclick="addMove(cell)" />
+         <cell v-for="(cell, i) in board" :key="'' + useExpansionBoard + i" v-model="board[i]"
+            @dropPlayer="dropPlayer($event, cell.x, cell.y)" @dblclick="addMove(cell)" />
 
          <div class="car" :style="`grid-area: ${car.y} / ${car.x};`" draggable="true" @dragstart="dragCar">
             CAR
@@ -248,173 +266,12 @@ body {
 </style>
 
 <style lang="scss">
+@import '~/board.scss';
+
 #sidebar {
    position: sticky;
    top: 0;
    align-self: start;
    cursor: pointer;
-}
-
-#board {
-   color: var(--primary-color);
-   font-size: 12px;
-   user-select: none;
-   cursor: pointer;
-
-   display: grid;
-   grid-template-columns: repeat(23, 1fr);
-   grid-gap: 1px;
-
-   .cell {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      aspect-ratio: 1;
-
-      &.w {
-         background-color: var(--wall-background);
-      }
-
-      &.o,
-      &.e {
-         background-color: var(--open-background);
-
-         &.seen {
-            background-color: color-mix(in srgb, var(--open-background), var(--seen-tint))
-         }
-      }
-
-      &.e.f-n {
-         rotate: -90deg;
-      }
-
-      &.e.f-w {
-         rotate: 180deg;
-      }
-
-      &.e.f-s {
-         rotate: 90deg;
-      }
-
-      &.s,
-      &.x,
-      &.y {
-         background-color: var(--street-background);
-
-         &.seen {
-            background-color: color-mix(in srgb, var(--street-background), var(--seen-tint))
-         }
-      }
-
-      &.t {
-         aspect-ratio: unset;
-         grid-column: span 5;
-         color: var(--title-color);
-         background: var(--title-background);
-         font-size: clamp(0rem, 5vw, 1rem);
-
-         &::before {
-            content: 'FACILITY 83X';
-         }
-      }
-
-      &.t~.t,
-      &.c~.c {
-         display: none;
-      }
-
-      &.c {
-         aspect-ratio: unset;
-         background-color: #0000AA;
-         grid-column: span 2;
-         grid-row: span 2;
-         position: relative;
-
-         span {
-            position: absolute;
-         }
-
-         span:nth-child(1) {
-            top: 5px;
-         }
-
-         span:nth-child(2) {
-            right: 10px;
-         }
-
-         span:nth-child(3) {
-            bottom: 5px;
-         }
-
-         span:nth-child(4) {
-            left: 10px;
-         }
-      }
-
-
-      $alphabet: A B C D E F G H I J K L M N O P Q R S T U V W X Y Z;
-
-      @each $letter in $alphabet {
-         &.#{$letter} {
-            background: var(--goal-background);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--goal-die-color);
-            font-size: 30px;
-
-            .index {
-               color: var(--goal-index-color);
-               font-size: initial;
-            }
-         }
-      }
-   }
-
-
-}
-
-.player {
-   display: flex;
-   justify-content: center;
-   align-items: center;
-   background-color: #AA0000;
-   border-radius: 100%;
-   z-index: 10;
-   aspect-ratio: 1;
-}
-
-.car {
-   display: flex;
-   justify-content: center;
-   align-items: center;
-   background-color: #AA0000;
-   border-radius: 100%;
-   z-index: 10;
-}
-
-.insideCar {
-   display: flex;
-   justify-content: space-around;
-   align-items: center;
-   flex-direction: column;
-   margin: 5px;
-}
-
-.carGrid {
-   display: grid;
-   grid-gap: 1px;
-   width: 100%;
-   aspect-ratio: 1;
-   grid-template-columns: 1fr 1fr;
-   grid-template-rows: 1fr 1fr;
-   border: 1px solid blue;
-
-   background-color: gray;
-
-   .cell {
-      background-color: white;
-   }
 }
 </style>

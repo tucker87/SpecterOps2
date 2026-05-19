@@ -1,5 +1,7 @@
 
-export const baseBoard = `
+export const baseBoard = {
+   carStart: playerCount => playerCount >= 3 ? { x: 11, y: 23 } : { x: 11, y: 17 },
+   map: `
 oowowowowowooesooottttt
 wooooooooowowsswwowowwo
 eowwowowwooowsswooooooe
@@ -33,11 +35,14 @@ oGowwoooLsswoooooooooRo
 oooooowoossooMowoPowooo
 owwowowowsswooowooowowo
 `
+}
 //ABCDEF
 //GHIJKL
 //MNOPQR
 //STUVWX
-export const bcBoard = `
+export const bcBoard = {
+   carStart: () => ({ x: 11, y: 17 }),
+   map: `
 oowwwowowoosesswowwowwe
 wooooooooowsswowooooowo
 eowwowowwoosswooowowowo
@@ -71,5 +76,4 @@ oJoKowwoLoossooQowooooo
 oooooooooowsswoooooRowo
 owowwowowoossoowowooooo
 `
-
-export default { baseBoard, bcBoard }
+}
