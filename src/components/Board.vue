@@ -6,7 +6,7 @@ import Cell from './Cell.vue'
 import Player from './Player.vue'
 import Toggle from './Toggle.vue'
 
-const useExpansionBoard = ref(true)
+const useExpansionBoard = ref(false)
 
 const boardData = computed(() => useExpansionBoard.value ? bcBoard : baseBoard)
 const boardWidth = 23
@@ -99,22 +99,6 @@ const initPlayer = index => ({
    inCar: true,
 })
 
-const car = ref({})
-const players = ref([])
-
-const moves = ref([])
-const initBoard = () => {
-   const startLocation = boardData.value.carStart(4)
-   car.value = { x: startLocation.x, y: startLocation.y }
-   players.value = [
-      initPlayer(1),
-      initPlayer(2),
-      initPlayer(3),
-      initPlayer(4),
-   ]
-}
-
-
 const clearSeen = () => board.value.forEach(cell => cell.seen = false)
 
 const updatePlayerSeen = () => {
@@ -195,7 +179,24 @@ const dragCar = e => {
    e.dataTransfer.setData('playerId', 'car');
 }
 
-updatePlayerSeen()
+const car = ref({})
+const players = ref([])
+const moves = ref([])
+
+const initBoard = () => {
+   const startLocation = boardData.value.carStart(4)
+   car.value = { x: startLocation.x, y: startLocation.y }
+   players.value = [
+      initPlayer(1),
+      initPlayer(2),
+      initPlayer(3),
+      initPlayer(4),
+   ]
+
+   clearSeen()
+   updatePlayerSeen()
+}
+initBoard()
 </script>
 
 <template>
