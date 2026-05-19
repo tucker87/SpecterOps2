@@ -1,12 +1,12 @@
 <script setup>
 import { ref } from 'vue';
 import { baseBoard } from '~/boards.js';
+import Cell from './Cell.vue'
+import Player from './Player.vue'
 
 const boardData = baseBoard
 const boardWidth = 23
 const boardHeight = 32
-
-const selectableCellTypes = ['e', 'o', 's', 'x', 'y']
 
 const cellIndex = (x, y) => {
    if (x > boardWidth || x < 1)
@@ -33,10 +33,10 @@ let board = ref(boardData
          y,
          code: type.charCodeAt(),
          blocksVision: type === 'w' || type === 'c' || isGoal,
-         selectable: selectableCellTypes.some(valid => type === valid),
          isOpen: type === 'o',
          isStreet: type === 's',
          isCrossroad: type === 'x' || type === 'y',
+         isExit: type === 'e',
          isGoal,
          neighborStreets: [],
          style,
@@ -84,28 +84,24 @@ const findStreetNeighbors = (board) => {
 
 findStreetNeighbors(board.value)
 
+const car = ref({ x: 11, y: 23 }) // 2: K17, 3: K23
+const initPlayer = index => ({
+   id: index,
+   name: '' + index,
+   x: car.value.x,
+   y: car.value.y,
+   inCar: true,
+})
+
 const players = ref([
-   { name: 'one', x: 10, y: 24 },
-   { name: 'two', x: 14, y: 16 },
+   initPlayer(1),
+   initPlayer(2),
+   initPlayer(3),
+   initPlayer(4),
 ])
-const car = ref({ x: 10, y: 23 }) // 2: J17, 3: J23
 
 const moves = ref([])
 const toCoord = pos => String.fromCharCode(pos.x + 64)
-const dice = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅']
-
-const selectCell = cell => {
-   board.value.forEach(cell => cell.active = false)
-
-   if (cell.active || !cell.selectable) {
-      clearSeen()
-      return
-   }
-
-   cell.active = true
-   clearSeen()
-   updateSeen(cell)
-}
 
 const clearSeen = () => board.value.forEach(cell => cell.seen = false)
 
@@ -119,6 +115,10 @@ const updatePlayerSeen = () => {
       const down = range(y + 1, boardHeight).map(cy => cellIndex(x, cy))
 
       const activeCell = board.value[cellIndex(x, y)]
+      if (!activeCell)
+         return
+
+      activeCell.seen = true
 
       const onRoad = activeCell.isStreet || activeCell.isCrossroad
 
@@ -127,26 +127,6 @@ const updatePlayerSeen = () => {
       setSeen(up, onRoad);
       setSeen(down, onRoad);
    }
-}
-
-
-const updateSeen = activeCell => {
-   if (!activeCell)
-      return;
-
-   let { x, y } = activeCell
-
-   const left = range(1, x - 1).map(cx => cellIndex(cx, y)).reverse()
-   const right = range(x + 1, boardWidth).map(cx => cellIndex(cx, y))
-   const up = range(1, y - 1).map(cy => cellIndex(x, cy)).reverse()
-   const down = range(y + 1, boardHeight).map(cy => cellIndex(x, cy))
-
-   const onRoad = activeCell.isStreet || activeCell.isCrossroad
-
-   setSeen(left, onRoad)
-   setSeen(right, onRoad);
-   setSeen(up, onRoad);
-   setSeen(down, onRoad);
 }
 
 const setSeen = (cellIndexes, onRoad) => {
@@ -165,18 +145,42 @@ const setSeen = (cellIndexes, onRoad) => {
 const addMove = cell => moves.value.push({ pos: `${toCoord(cell)}${cell.y}` })
 const deleteMove = cell => moves.value = moves.value.filter(x => x !== cell)
 
-const dragStart = (e, index) => {
-   e.dataTransfer.setData('playerIndex', index);
-}
-
 const dropPlayer = (e, x, y) => {
    e.preventDefault();
-   const playerIndex = e.dataTransfer.getData('playerIndex');
+   const playerId = e.dataTransfer.getData('playerId');
 
-   players.value[playerIndex].x = x
-   players.value[playerIndex].y = y
+   if (playerId === 'car') {
+      car.value.x = x
+      car.value.y = y
+      for (const player of players.value) {
+         if (player.inCar) {
+            player.x = x
+            player.y = y
+         }
+      }
+   }
+   else {
+      const player = players.value.find(p => p.id === +playerId)
+      player.inCar = false
+      player.x = x
+      player.y = y
+   }
+
    clearSeen()
    updatePlayerSeen()
+}
+
+const moveToCar = player => {
+   player.x = car.value.x
+   player.y = car.value.y
+   player.inCar = true
+
+   clearSeen()
+   updatePlayerSeen()
+}
+
+const dragCar = e => {
+   e.dataTransfer.setData('playerId', 'car');
 }
 
 updatePlayerSeen()
@@ -191,41 +195,33 @@ updatePlayerSeen()
    </section>
    <div style="display: grid; grid-template-columns: 1fr 100px;">
       <section id="board">
-         <template v-for="cell in board">
-            <div class="cell" :class="[cell.type, cell.facing, cell.active ? 'active' : '', cell.seen ? 'seen' : '']"
-               :style="cell.style" @click="selectCell(cell)" @dblclick="addMove(cell)"
-               @drop="dropPlayer($event, cell.x, cell.y)" @dragover.prevent @dragenter.prevent>
-               <template v-if="cell.isOpen || cell.isStreet || cell.isCrossroad">
-                  {{ toCoord(cell) }}{{ cell.y }}
-               </template>
+         <cell v-for="(cell, i) in board" v-model="board[i]" @dropPlayer="dropPlayer($event, cell.x, cell.y)"
+            @dblclick="addMove(cell)" />
 
-               <template v-else-if="cell.code < 92">
-                  <span class="index">{{ ((cell.code - 65) % 6) + 1 }}</span>
-                  <span class="die">{{ dice[(cell.code - 65) % 6] }}</span>
-               </template>
-
-               <template v-if="cell.type === 'e'">
-                  <span>→</span>
-               </template>
-
-               <template v-if="cell.type === 'c'">
-                  <span>N</span>
-                  <span>E</span>
-                  <span>S</span>
-                  <span>W</span>
-               </template>
-            </div>
-         </template>
-         <div class="car" :style="`grid-area: ${car.y} / ${car.x} / span 2 / span 2;`">
+         <div class="car" :style="`grid-area: ${car.y} / ${car.x};`" draggable="true" @dragstart="dragCar">
             CAR
          </div>
-         <div class="player" v-for="(player, i) in players" :style="`grid-area: ${player.y} / ${player.x};`"
-            draggable="true" @dragstart="dragStart($event, i)">
-            {{ player.name }}
-         </div>
+
+         <template v-for="(player, i) in players">
+            <player v-if="!player.inCar" v-model="players[i]" @moveToCar="moveToCar(player)" />
+         </template>
       </section>
 
-      <section id="moves">
+      <section id="sidebar">
+         <div class="insideCar"><span>In Car</span>
+            <div class="carGrid">
+               <template v-for="i in 4">
+                  <div class="cell">
+                     <template v-if="players[i - 1]">
+                        <player v-if="players[i - 1].inCar" v-model="players[i - 1]" />
+                        <div v-else>-</div>
+                     </template>
+                  </div>
+               </template>
+
+            </div>
+         </div>
+         <span>Moves</span>
          <template v-for="(move, i) in moves">
             <div class="move" @click="deleteMove(move)">{{ i + 1 }}. {{ move.pos }}</div>
          </template>
@@ -243,8 +239,6 @@ body {
    --wall-background: #444;
    --title-background: #444;
    --title-color: #FFF;
-   --active-tint: blue 40%;
-   --active-color: #000;
    --seen-tint: blue 20%;
    --goal-background: #444;
    --goal-index-color: #FFF;
@@ -253,7 +247,7 @@ body {
 </style>
 
 <style lang="scss">
-#moves {
+#sidebar {
    position: sticky;
    top: 0;
    align-self: start;
@@ -277,25 +271,13 @@ body {
       width: 100%;
       aspect-ratio: 1;
 
-      &.active {
-         color: var(--active-color);
-      }
-
       &.w {
          background-color: var(--wall-background);
-
-         &.active {
-            background-color: color-mix(in srgb, var(--wall-background), var(--active-backgound))
-         }
       }
 
       &.o,
       &.e {
          background-color: var(--open-background);
-
-         &.active {
-            background-color: color-mix(in srgb, var(--open-background), var(--active-tint))
-         }
 
          &.seen {
             background-color: color-mix(in srgb, var(--open-background), var(--seen-tint))
@@ -318,10 +300,6 @@ body {
       &.x,
       &.y {
          background-color: var(--street-background);
-
-         &.active {
-            background-color: color-mix(in srgb, var(--street-background), var(--active-tint))
-         }
 
          &.seen {
             background-color: color-mix(in srgb, var(--street-background), var(--seen-tint))
@@ -393,19 +371,49 @@ body {
       }
    }
 
-   .player {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #AA0000;
-      border-radius: 100%;
-   }
 
-   .car {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #AA0000;
+}
+
+.player {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   background-color: #AA0000;
+   border-radius: 100%;
+   z-index: 10;
+   aspect-ratio: 1;
+}
+
+.car {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   background-color: #AA0000;
+   border-radius: 100%;
+   z-index: 10;
+}
+
+.insideCar {
+   display: flex;
+   justify-content: space-around;
+   align-items: center;
+   flex-direction: column;
+   margin: 5px;
+}
+
+.carGrid {
+   display: grid;
+   grid-gap: 1px;
+   width: 100%;
+   aspect-ratio: 1;
+   grid-template-columns: 1fr 1fr;
+   grid-template-rows: 1fr 1fr;
+   border: 1px solid blue;
+
+   background-color: gray;
+
+   .cell {
+      background-color: white;
    }
 }
 </style>
