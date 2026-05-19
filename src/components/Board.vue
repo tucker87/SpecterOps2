@@ -100,9 +100,9 @@ const initPlayer = index => ({
    inCar: true,
 })
 
-const clearSeen = () => board.value.forEach(cell => cell.seen = false)
-
 const updatePlayerSeen = () => {
+   board.value.forEach(cell => cell.seen = false)
+
    for (const player of players.value) {
       const { x, y } = player
 
@@ -163,7 +163,6 @@ const dropPlayer = (e, x, y) => {
       player.y = y
    }
 
-   clearSeen()
    updatePlayerSeen()
 }
 
@@ -172,7 +171,6 @@ const moveToCar = player => {
    player.y = car.value.y
    player.inCar = true
 
-   clearSeen()
    updatePlayerSeen()
 }
 
@@ -196,7 +194,6 @@ const initBoard = () => {
    ])
    moves = useLocalStorage(key.value + 'moves', [])
 
-   clearSeen()
    updatePlayerSeen()
 }
 initBoard()
