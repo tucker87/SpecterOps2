@@ -33,6 +33,43 @@ oGowwoooLsswoooooooooRo
 oooooowoossooMowoPowooo
 owwowowowsswooowooowowo
 `
-export const bcBoard = ``
+//ABCDEF
+//GHIJKL
+//MNOPQR
+//STUVWX
+export const bcBoard = `
+oowwwowowoosesswowwowwe
+wooooooooowsswowooooowo
+eowwowowwoosswooowowowo
+wooooooowowssoowooooooo
+wowowowooowsswowowowwow
+eooooooowoossoooowooooo
+wowowwowwowsswwowwwowow
+ooooowxxsssxxssxxssssss
+owowooxxsssxxssxxssssss
+owooowsswwowowwsswowowo
+ooowoosswooooowssoowowo
+wowwowssoowoSoosswooooo
+ssssssxxwoooooTssooVoUo
+ssssssxxoowowoosswooooo
+wowowwsswowowowssoowwow
+ooooowxxsssssssxxwooooo
+oAowowxxsssssssxxooWoXo
+ooowoosswowwoccsswooooo
+oBooowssoowwoccsswwowow
+oooDoossEooooooxxssssss
+oCooowssooFowowxxssssss
+ooowoosswoooooosswowoMo
+wowwowsswwowowwssoowooo
+ssssssxxsssxxssxxwooowo
+ssssssxxsssxxssxxwoNowo
+owowowowowwsswowooooooo
+oooooooooowsswooowwoOow
+woGoHowoIoossooPooooooo
+oooooooooowsswooowowowo
+oJoKowwoLoossooQowooooo
+oooooooooowsswoooooRowo
+owowwowowoossoowowooooo
+`
 
 export default { baseBoard, bcBoard }

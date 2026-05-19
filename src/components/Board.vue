@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue';
-import { baseBoard } from '~/boards.js';
+import { baseBoard, bcBoard } from '~/boards.js';
 import Cell from './Cell.vue'
 import Player from './Player.vue'
 
-const boardData = baseBoard
+// const boardData = baseBoard
+const boardData = bcBoard
 const boardWidth = 23
 const boardHeight = 32
 
